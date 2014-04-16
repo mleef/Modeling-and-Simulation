@@ -1,0 +1,10 @@
+Marc Leef
+CIS 445 
+4/27/13
+Jun Li
+
+
+1.9) The results of the replications are included in this folder, the file is called "mm1x10.out". The average delay in the queue ranged from .394 to .549
+minutes, the average number of customers in the queue ranged from .378 to .588, the server utilization ranged from .460 to .514, and the time the simulation
+ended ranged from 940.969 to 1042.094 minutes. The run that possessed the lowest average queue delay also possessed the lowest average number of customers in 
+the queue. The run that possessed the highest server utilization also had the highest average number of customers and the highest average delay. 

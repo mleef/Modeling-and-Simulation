@@ -1,0 +1,23 @@
+Double-server queueing system
+
+Mean interarrival time      1.000 minutes
+
+Mean service time for server 1           0.700 minutes
+
+Mean service time for server 2           0.900 minutes
+
+Time limit          1000
+
+
+
+Average delay in queue      6.138 minutes
+
+Average number in queue 1     2.058
+
+Average number in queue 2    10.911
+
+Server 1 utilization          0.746
+
+Server 2 utilization          0.918
+
+Time simulation ended    1000.027 minutes
