@@ -9,12 +9,12 @@
 #define BUSY      1  /* Mnemonics for server's being busy */
 #define IDLE      0  /* and idle. */
 
-int   next_event_type, num_custs_delayed, time_limit, num_events,
+int   next_event_type, num_custs_delayed1, num_custs_delayed2, time_limit, num_events,
       num_in_q1, num_in_q2, server1_status, server2_status;
       
-float area_num_in_q1, area_num_in_q2, area_server_status1, area_server_status2, mean_interarrival, mean_service1, mean_service2,
-      sim_time, time_arrival1[Q_LIMIT + 1], time_arrival2[Q_LIMIT + 1], time_last_event, time_next_event[4],
-      total_of_delays;
+float area_num_in_q1, area_num_in_q2, area_server_status1, area_server_status2, mean_interarrival, service_time1, service_time2,
+      sim_time, queue1[Q_LIMIT + 1], queue2[Q_LIMIT + 1], time_last_event, time_next_event[4],
+      total_of_delays1, total_of_delays2;
       
 FILE  *infile, *outfile;
 
@@ -40,7 +40,7 @@ int main()  /* Main function. */
 
     /* Read input parameters. */
 
-    fscanf(infile, "%f %f %f %d", &mean_interarrival, &mean_service1, &mean_service2, &time_limit);
+    fscanf(infile, "%f %f %f %d", &mean_interarrival, &service_time1, &service_time2, &time_limit);
            
 
     /* Write report heading and input parameters. */
@@ -48,13 +48,15 @@ int main()  /* Main function. */
     fprintf(outfile, "Double-server queueing system\n\n");
     fprintf(outfile, "Mean interarrival time%11.3f minutes\n\n",
             mean_interarrival);
-    fprintf(outfile, "Mean service time for server 1%16.3f minutes\n\n", mean_service1);
-    fprintf(outfile, "Mean service time for server 2%16.3f minutes\n\n", mean_service2);
+    fprintf(outfile, "Mean service time for server 1%16.3f minutes\n\n", service_time1);
+    fprintf(outfile, "Mean service time for server 2%16.3f minutes\n\n", service_time2);
     fprintf(outfile, "Time limit%14d\n\n", time_limit);
 
     /* Initialize the simulation. */
-    
+
+for(int i = 0; i < 10; i++) {    
 	initialize();
+
 
 	/* Run the simulation while more time is needed. */
 
@@ -86,6 +88,8 @@ int main()  /* Main function. */
     /* Invoke the report generator and end the simulation. */
 
     report();
+    
+}
 
     fclose(infile);
     fclose(outfile);
@@ -110,8 +114,10 @@ void initialize(void)  /* Initialization function. */
 
     /* Initialize the statistical counters. */
 
-    num_custs_delayed  = 0;
-    total_of_delays    = 0.0;
+    num_custs_delayed1  = 0;
+    num_custs_delayed2  = 0;
+    total_of_delays1    = 0.0;
+    total_of_delays2    = 0.0;
     area_num_in_q1      = 0.0;
     area_num_in_q2      = 0.0;
     area_server_status1 = 0.0;
@@ -186,7 +192,7 @@ void arrive(void)  /* Arrival event function. */
         /* There is still room in the queue, so store the time of arrival of the
            arriving customer at the (new) end of time_arrival. */
 
-        time_arrival1[num_in_q1] = sim_time;
+        queue1[num_in_q1] = sim_time;
     }
 
     else {
@@ -196,17 +202,19 @@ void arrive(void)  /* Arrival event function. */
            the results of the simulation.) */
 
         delay            = 0.0;
-        total_of_delays += delay;
+        total_of_delays1 += delay;
 
         /* Increment the number of customers delayed, and make server busy. */
 
-        ++num_custs_delayed;
+        ++num_custs_delayed1;
         server1_status = BUSY;
 
         /* Schedule a a queue change event. */
 
-        time_next_event[2] = sim_time + expon(mean_service1);
+        time_next_event[2] = sim_time + expon(service_time1);
     }
+    
+    //printf("ARRIVAL: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
 }
 
 void change(void)  /* Queue change event function. */
@@ -235,22 +243,22 @@ void change(void)  /* Queue change event function. */
         /* Compute the delay of the customer who is beginning service and update
            the total delay accumulator. */
 
-        delay            = sim_time - time_arrival1[1];
-        total_of_delays += delay;
+        delay            = sim_time - queue1[1];
+        total_of_delays1 += delay;
 
-        /* Increment the number of customers delayed, and schedule departure. */
+        /* Increment the number of customers delayed, and schedule queue change. */
 
-        ++num_custs_delayed;
-        time_next_event[2] = sim_time + expon(mean_service1);
+        ++num_custs_delayed1;
+        time_next_event[2] = sim_time + expon(service_time1);
 
         /* Move each customer in queue (if any) up one place. */
 
         for (i = 1; i <= num_in_q1; ++i)
-            time_arrival1[i] = time_arrival1[i + 1];
+            queue1[i] = queue1[i + 1];
     }
     
 
-    /* Check to see whether server 1 is busy. */
+    /* Check to see whether server 2 is busy. */
 
     if (server2_status == BUSY) {
 
@@ -272,7 +280,7 @@ void change(void)  /* Queue change event function. */
         /* There is still room in the queue, so store the time of arrival of the
            arriving customer at the (new) end of time_arrival. */
 
-        time_arrival2[num_in_q2] = sim_time;
+        queue2[num_in_q2] = sim_time;
     }
 
     else {
@@ -282,18 +290,21 @@ void change(void)  /* Queue change event function. */
            the results of the simulation.) */
 
         delay            = 0.0;
-        total_of_delays += delay;
+        total_of_delays2 += delay;
 
         /* Increment the number of customers delayed, and make server busy. */
 
-        ++num_custs_delayed;
+        ++num_custs_delayed2;
         server2_status = BUSY;
 
         /* Schedule a queue change event. */
 
-        time_next_event[3] = sim_time + expon(mean_service1);
+        time_next_event[3] = sim_time + expon(service_time1);
     }
     
+    
+    //printf("CHANGE: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+
     
     
 }
@@ -325,19 +336,22 @@ void depart(void)  /* Departure event function. */
         /* Compute the delay of the customer who is beginning service and update
            the total delay accumulator. */
 
-        delay            = sim_time - time_arrival2[1];
-        total_of_delays += delay;
+        delay            = sim_time - queue2[1];
+        total_of_delays2 += delay;
 
         /* Increment the number of customers delayed, and schedule departure. */
 
-        ++num_custs_delayed;
-        time_next_event[3] = sim_time + expon(mean_service2);
+        ++num_custs_delayed2;
+        time_next_event[3] = sim_time + expon(service_time2);
 
         /* Move each customer in queue (if any) up one place. */
 
         for (i = 1; i <= num_in_q2; ++i)
-            time_arrival2[i] = time_arrival2[i + 1];
+            queue2[i] = queue2[i + 1];
     }
+    
+        //printf("DEPARTURE: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+
 }
 
 
@@ -345,8 +359,10 @@ void report(void)  /* Report generator function. */
 {
     /* Compute and write estimates of desired measures of performance. */
 
-    fprintf(outfile, "\n\nAverage delay in queue%11.3f minutes\n\n",
-            total_of_delays / num_custs_delayed);
+    fprintf(outfile, "\n\nAverage delay in queue 1%11.3f minutes\n\n",
+            total_of_delays1 / num_custs_delayed1);
+    fprintf(outfile, "Average delay in queue 2%11.3f minutes\n\n",
+            total_of_delays2 / num_custs_delayed2);
     fprintf(outfile, "Average number in queue 1%10.3f\n\n",
             area_num_in_q1 / sim_time);
     fprintf(outfile, "Average number in queue 2%10.3f\n\n",
@@ -386,7 +402,9 @@ float expon(float mean)  /* Exponential variate generation function. */
 {
     /* Return an exponential random variate with mean "mean". */
 
-    return -mean * log(lcgrand(1));
+    float a = -mean * log(lcgrand(1));
+    printf("%f\n", a);
+    return a;
 }
 
 
