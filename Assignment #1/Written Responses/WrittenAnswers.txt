@@ -1,10 +1,28 @@
 Marc Leef
 CIS 445 
-4/27/13
+4/22/13
 Jun Li
 
 
-1.9) The results of the replications are included in this folder, the file is called "mm1x10.out". The average delay in the queue ranged from .394 to .549
+1) The results of the replications are included in this folder, the file is called "mm1x10.out". The average delay in the queue ranged from .394 to .549
 minutes, the average number of customers in the queue ranged from .378 to .588, the server utilization ranged from .460 to .514, and the time the simulation
 ended ranged from 940.969 to 1042.094 minutes. The run that possessed the lowest average queue delay also possessed the lowest average number of customers in 
-the queue. The run that possessed the highest server utilization also had the highest average number of customers and the highest average delay. 
+the queue. The run that possessed the highest server utilization also had the highest average number of customers and the highest average delay.
+
+2) Code for problem 2 is in the "Code" directory. Input for this simulation is in the file "mm2.in1" and the output for the simulation with these conditions 
+is in the file "mm2.out1".
+
+3) a) Input of this changed run is in the file "mm2.in2" and the output is in the file "mm2.out2". I had to dramatically increase the upper bound on the size 
+	  of the queues to get the program to finish.
+
+   b) The average delay in both queues dramatically increased with the changed input parameters. The delay times in queue 1 increased from about 1-2 minutes to 
+      20-30 minutes, and the queue 2 delay rose from 3-6 minutes to a staggering around 500 minutes. Both servers utilizations were very close to 1 (the lowest 
+      being .967) and similarly to the delay, the average number of customers in both queues also dramatically increased, reaching over 1000 in queue 2 in a couple
+      replications. 
+   
+   c) The primary change in behavior of the queue between the simulations was the number of customers the queue had to contain. For the second simulation, I had to increase
+      the queue size to 5000 to get the program to finish without causing a queue overflow. In the first simulation, there were never more than 6 or 7 customers in a given
+      queue, but in the second simulation, with the decreased server time of queue 1 coupled with the greatly decreased inter arrival time plus the increased length of the
+      simulation, there were over 1000 customers in queue 2 at certain times and around 40 in queue 1. As far as implementing the changed behavior, it was as simple as changing
+      my Q_LIMIT variable, but I can see this problem presenting a considerable memory strain once the simulations get larger and more complex, and also highlighted the problem
+      of statically allocated queue structures in simulations. 

@@ -5,38 +5,41 @@
 #include <math.h>
 #include "lcgrand.h"  /* Header file for random-number generator. */
 
-#define Q_LIMIT 100  /* Limit on queue length. */
+#define Q_LIMIT 10000  /* Limit on queue length. */
 #define BUSY      1  /* Mnemonics for server's being busy */
 #define IDLE      0  /* and idle. */
 
 int   next_event_type, num_custs_delayed1, num_custs_delayed2, time_limit, num_events,
-      num_in_q1, num_in_q2, server1_status, server2_status;
+      num_in_q1, num_in_q2, server1_status, server2_status, max_in_transit, num_in_transit, total_in_transit;
       
 float area_num_in_q1, area_num_in_q2, area_server_status1, area_server_status2, mean_interarrival, service_time1, service_time2,
-      sim_time, queue1[Q_LIMIT + 1], queue2[Q_LIMIT + 1], time_last_event, time_next_event[4],
+      sim_time, queue1[Q_LIMIT + 1], queue2[Q_LIMIT + 1], time_last_event, time_next_event[6],
       total_of_delays1, total_of_delays2;
       
 FILE  *infile, *outfile;
 
 void  initialize(void);
 void  timing(void);
-void  arrive(void);
-void  change(void);
-void  depart(void);
+void  arrive1(void);
+void  arrive2(void);
+void  depart1(void);
+void  depart2(void);
+void  finish(void);
 void  report(void);
 void  update_time_avg_stats(void);
 float expon(float mean);
+float uniform(float a, float b);
 
 int main()  /* Main function. */
 {
     /* Open input and output files. */
 
-    infile  = fopen("2servers.in",  "r");
-    outfile = fopen("2servers.out", "w");
+    infile  = fopen("mm2_t.in",  "r");
+    outfile = fopen("mm2_t.out", "w");
 
     /* Specify the number of events for the timing function. */
 
-    num_events = 3;
+    num_events = 5;
 
     /* Read input parameters. */
 
@@ -45,7 +48,7 @@ int main()  /* Main function. */
 
     /* Write report heading and input parameters. */
 
-    fprintf(outfile, "Double-server queueing system\n\n");
+    fprintf(outfile, "Double-server queueing system with transit time\n\n");
     fprintf(outfile, "Mean interarrival time%11.3f minutes\n\n",
             mean_interarrival);
     fprintf(outfile, "Mean service time for server 1%16.3f minutes\n\n", service_time1);
@@ -57,37 +60,38 @@ int main()  /* Main function. */
 for(int i = 0; i < 10; i++) {    
 	initialize();
 
+		int running = 1;
+		while(running) {
+			/* Determine the next event. */
 
-	/* Run the simulation while more time is needed. */
+			timing();
 
-	while (sim_time < time_limit) {
+			/* Update time-average statistical accumulators. */
 
-		/* Determine the next event. */
+			update_time_avg_stats();
 
-		timing();
+			/* Invoke the appropriate event function. */
 
-		/* Update time-average statistical accumulators. */
-
-		update_time_avg_stats();
-
-		/* Invoke the appropriate event function. */
-
-		switch (next_event_type) {
-			case 1:
-				arrive();
-				break;
-			case 2:
-				change();
-				break;
-			case 3:
-				depart();
-				break;
+			switch (next_event_type) {
+				case 1:
+					arrive1();
+					break;
+				case 2:
+					depart1();
+					break;
+				case 3:
+					arrive2();
+					break;
+				case 4:
+					depart2();
+					break;
+				case 5:
+					finish();
+					running = 0;
+					break;
+			}
 		}
-	}
 
-    /* Invoke the report generator and end the simulation. */
-
-    report();
     
 }
 
@@ -122,6 +126,9 @@ void initialize(void)  /* Initialization function. */
     area_num_in_q2      = 0.0;
     area_server_status1 = 0.0;
     area_server_status2 = 0.0;
+    num_in_transit = 0;
+    max_in_transit = 0;
+    total_in_transit = 0;
 
     /* Initialize event list.  Since no customers are present, the departure
        (service completion) event is eliminated from consideration, as is the
@@ -130,6 +137,9 @@ void initialize(void)  /* Initialization function. */
     time_next_event[1] = sim_time + expon(mean_interarrival);
     time_next_event[2] = 1.0e+30;
     time_next_event[3] = 1.0e+30;
+    time_next_event[4] = 1.0e+30;
+    time_next_event[5] = 1000;
+    
 }
 
 void timing(void)  /* Timing function. */
@@ -162,7 +172,7 @@ void timing(void)  /* Timing function. */
     sim_time = min_time_next_event;
 }
 
-void arrive(void)  /* Arrival event function. */
+void arrive1(void)  /* Arrival event function. */
 {
     float delay;
 
@@ -183,7 +193,7 @@ void arrive(void)  /* Arrival event function. */
         if (num_in_q1 > Q_LIMIT) {
 
             /* The queue has overflowed, so stop the simulation. */
-
+			
             fprintf(outfile, "\nOverflow of the array time_arrival at");
             fprintf(outfile, " time %f", sim_time);
             exit(2);
@@ -214,10 +224,10 @@ void arrive(void)  /* Arrival event function. */
         time_next_event[2] = sim_time + expon(service_time1);
     }
     
-    //printf("ARRIVAL: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+    //printf("ARRIVAL1: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
 }
 
-void change(void)  /* Queue change event function. */
+void depart1(void)  /* Queue change event function. */
 {
     int   i;
     float delay;
@@ -243,13 +253,13 @@ void change(void)  /* Queue change event function. */
         /* Compute the delay of the customer who is beginning service and update
            the total delay accumulator. */
 
-        delay            = sim_time - queue1[1];
+        delay = sim_time - queue1[1];
         total_of_delays1 += delay;
 
-        /* Increment the number of customers delayed, and schedule queue change. */
+        /* Increment the number of customers delayed, and schedule arrival into next queue. */
 
         ++num_custs_delayed1;
-        time_next_event[2] = sim_time + expon(service_time1);
+        time_next_event[3] = sim_time + uniform(0.0,2.0);
 
         /* Move each customer in queue (if any) up one place. */
 
@@ -257,6 +267,20 @@ void change(void)  /* Queue change event function. */
             queue1[i] = queue1[i + 1];
     }
     
+    /* Increment the current number of customers in transit. */
+    
+    num_in_transit += 1;
+	//printf("DEPART1: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+    
+}
+    
+void arrive2(void) {
+
+	float delay;
+	
+	
+	/* Schedule next arrival from transit. */
+	time_next_event[3] = sim_time + uniform(0.0,2.0);
 
     /* Check to see whether server 2 is busy. */
 
@@ -297,20 +321,22 @@ void change(void)  /* Queue change event function. */
         ++num_custs_delayed2;
         server2_status = BUSY;
 
-        /* Schedule a queue change event. */
+        /* Schedule a queue departure event. */
 
-        time_next_event[3] = sim_time + expon(service_time1);
+        time_next_event[4] = sim_time + expon(service_time2);
     }
     
+    num_in_transit -= 1;
+     
     
-    //printf("CHANGE: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+    //printf("ARRIVE2: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
 
     
     
 }
 
 
-void depart(void)  /* Departure event function. */
+void depart2(void)  /* Departure event function. */
 {
     int   i;
     float delay;
@@ -323,7 +349,7 @@ void depart(void)  /* Departure event function. */
            departure (service completion) event from consideration. */
 
         server2_status      = IDLE;
-        time_next_event[3] = 1.0e+30;
+        time_next_event[4] = 1.0e+30;
     }
 
     else {
@@ -342,7 +368,7 @@ void depart(void)  /* Departure event function. */
         /* Increment the number of customers delayed, and schedule departure. */
 
         ++num_custs_delayed2;
-        time_next_event[3] = sim_time + expon(service_time2);
+        time_next_event[4] = sim_time + expon(service_time2);
 
         /* Move each customer in queue (if any) up one place. */
 
@@ -350,7 +376,7 @@ void depart(void)  /* Departure event function. */
             queue2[i] = queue2[i + 1];
     }
     
-        //printf("DEPARTURE: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+        //printf("DEPART2: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
 
 }
 
@@ -370,8 +396,13 @@ void report(void)  /* Report generator function. */
     fprintf(outfile, "Server 1 utilization%15.3f\n\n",
             area_server_status1 / sim_time);
     fprintf(outfile, "Server 2 utilization%15.3f\n\n",
-            area_server_status2 / sim_time);
-    fprintf(outfile, "Time simulation ended%12.3f minutes", sim_time);
+            area_server_status2 / sim_time);    
+    fprintf(outfile, "Maximum number in transit%14d\n\n",
+            max_in_transit);     
+    fprintf(outfile, "Average number in transit%15.3f\n\n",
+            total_in_transit / sim_time);
+            
+    fprintf(outfile, "Time simulation ended%12.3f minutes\n\n\n", sim_time);
 }
 
 
@@ -394,7 +425,22 @@ void update_time_avg_stats(void)  /* Update area accumulators for time-average
 
     area_server_status1 += server1_status * time_since_last_event;
     area_server_status2 += server2_status * time_since_last_event;
+    
+    
+    /* Update transit stats. */
+    
+    if(num_in_transit > max_in_transit) {
+    	max_in_transit = num_in_transit;
+    }
+    
+    total_in_transit += num_in_transit * time_since_last_event;
 
+}
+
+void finish(void) 
+{
+	/* Invoke the report generator and end the simulation. */
+    report();
 }
 
 
@@ -402,10 +448,16 @@ float expon(float mean)  /* Exponential variate generation function. */
 {
     /* Return an exponential random variate with mean "mean". */
 
-    float a = -mean * log(lcgrand(1));
-    printf("%f\n", a);
-    return a;
+    return -mean * log(lcgrand(1));
 }
+
+float uniform(float a, float b)  /* Uniform variate generation function. */
+{
+    /* Return a U(a,b) random variate. */
+
+    return a + lcgrand(1) * (b - a);
+}
+
 
 
 

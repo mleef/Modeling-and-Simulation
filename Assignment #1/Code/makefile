@@ -1,5 +1,5 @@
 all:
-	gcc -o sim 2servers.c lcgrand.c
+	gcc -o sim mm2.c lcgrand.c
  
 clean:
 	rm sim

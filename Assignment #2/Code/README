@@ -1,0 +1,3 @@
+There is a makefile that will compile my simulation into an executable called "sim". My code is in the file "mm2.c". My input for
+problem 2 is titled "mm2.in1" and its output is "mm2.out1". The tweaked inputs for problem 3a are in the file "mm2.in2" and the 
+output of that simulation is in "mm2.out2". My written responses are in a separate folder. 
