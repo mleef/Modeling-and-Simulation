@@ -224,7 +224,7 @@ void arrive1(void)  /* Arrival event function. */
         time_next_event[2] = sim_time + expon(service_time1);
     }
     
-    //printf("ARRIVAL1: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+    //printf("ARRIVE1: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d, %d in transit\n", num_in_q1, num_in_q2, server1_status, server2_status, num_in_transit);
 }
 
 void depart1(void)  /* Queue change event function. */
@@ -256,9 +256,10 @@ void depart1(void)  /* Queue change event function. */
         delay = sim_time - queue1[1];
         total_of_delays1 += delay;
 
-        /* Increment the number of customers delayed, and schedule arrival into next queue. */
+        /* Increment the number of customers delayed, and schedule next change and arrival into second queue. */
 
         ++num_custs_delayed1;
+        time_next_event[2] = sim_time + expon(service_time1);
         time_next_event[3] = sim_time + uniform(0.0,2.0);
 
         /* Move each customer in queue (if any) up one place. */
@@ -270,7 +271,7 @@ void depart1(void)  /* Queue change event function. */
     /* Increment the current number of customers in transit. */
     
     num_in_transit += 1;
-	//printf("DEPART1: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+    //printf("DEPART1: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d, %d in transit\n", num_in_q1, num_in_q2, server1_status, server2_status, num_in_transit);
     
 }
     
@@ -329,7 +330,7 @@ void arrive2(void) {
     num_in_transit -= 1;
      
     
-    //printf("ARRIVE2: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+    //printf("ARRIVE2: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d, %d in transit\n", num_in_q1, num_in_q2, server1_status, server2_status, num_in_transit);
 
     
     
@@ -376,7 +377,7 @@ void depart2(void)  /* Departure event function. */
             queue2[i] = queue2[i + 1];
     }
     
-        //printf("DEPART2: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d\n", num_in_q1, num_in_q2, server1_status, server2_status);
+    //printf("DEPART2: %d in queue 1 and %d in queue 2, SERVER 1 STATUS: %d and SERVER 2 STATUS: %d, %d in transit\n", num_in_q1, num_in_q2, server1_status, server2_status, num_in_transit);
 
 }
 

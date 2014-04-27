@@ -1,0 +1,11 @@
+Marc Leef
+CIS 445 
+4/22/13
+Jun Li
+
+
+1) a) The output is in the code folder called "mm2_t.out".
+   b) The length of the event list must be 5. The events consist of: arrive1 (arrival to first queue),
+   depart1 (leave from first queue and enter transit), arrive2 (exit transit and arrive in second queue), 
+   depart2 (leave second queue and exit model), and finish (event called when simulation reaches 1000 minutes,
+   stops the sim).
